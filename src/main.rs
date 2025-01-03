@@ -46,3 +46,46 @@ fn main() {
 }
 
 
+#[cfg(test)]
+mod tests {
+    use super::read_compact_size;
+
+    #[test]
+    fn test_read_compact_size_count_1() {
+        let mut bytes = [1_u8].as_slice();
+        let count = read_compact_size(&mut bytes);
+        assert_eq!(count, 1u64);
+    }
+
+    #[test]
+    fn test_read_compact_size_count_253() {
+        let mut bytes = [253_u8, 0, 1].as_slice();
+        let count = read_compact_size(&mut bytes);
+        assert_eq!(count, 256u64);
+    }
+
+    #[test]
+    fn test_read_compact_size_count_254() {
+        let mut bytes = [254_u8, 0, 0, 0, 1].as_slice();
+        let count = read_compact_size(&mut bytes);
+        assert_eq!(count, 256_u64.pow(3));
+    }
+
+    #[test]
+    fn test_read_compact_size_count_255() {
+        let mut bytes = [255_u8, 0, 0, 0, 0, 0, 0, 0, 1].as_slice();
+        let count = read_compact_size(&mut bytes);
+        assert_eq!(count, 256_u64.pow(7));
+    }
+
+    #[test]
+    fn test_read_compact_size_count_20000() {
+        let hex = "fd204e";
+        let decoded = hex::decode(hex).unwrap();
+        let mut bytes = decoded.as_slice();
+        let count = read_compact_size(&mut bytes);
+        let expected_count = 20_000_u64;
+        assert_eq!(count, expected_count);
+        assert_eq!(bytes.len(), 0);
+    }
+}
