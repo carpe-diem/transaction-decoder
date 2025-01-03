@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::fmt;
 
+#[derive(Debug)]
 struct Input {
     txin: [u8; 32],
     output_index: u32,
@@ -8,16 +9,18 @@ struct Input {
     sequence: u32,
 }
 
-impl fmt::Debug for Input {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Input")
-            .field("txid", &self.txin)
-            .field("output_index", &self.output_index)
-            .field("script", &self.script_sig)
-            .field("sequence", &self.sequence)
-            .finish()
-    }
-}
+// this is the correct way to implement Debug for Input 
+// using #[derive(Debug)] we get the same output as the test
+// impl fmt::Debug for Input {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         f.debug_struct("Input")
+//             .field("txid", &self.txin)
+//             .field("output_index", &self.output_index)
+//             .field("script", &self.script_sig)
+//             .field("sequence", &self.sequence)
+//             .finish()
+//     }
+// }
 
 fn read_compact_size(transaction_bytes: &mut &[u8]) -> u64 {
     let mut compact_size = [0_u8; 1];
