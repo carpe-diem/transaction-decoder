@@ -6,6 +6,7 @@ use serde::Serialize;
 struct Transaction {
     version: u32,
     inputs: Vec<Input>,
+    outputs: Vec<Output>,
 }
 
 #[derive(Debug, Serialize)]
@@ -14,6 +15,20 @@ struct Input {
     output_index: u32,
     script_sig: String,
     sequence: u32,
+}
+
+struct Amount (u64);
+
+impl Amount {
+    pub fn to_btc(&self) -> f64 {
+        self.0 as f64 / 100_000_000.0
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct Output {
+    amount: f64,
+    script_pubkey: String,
 }
 
 // this is the correct way to implement Debug for Input 
@@ -60,6 +75,12 @@ fn read_u32(transaction_bytes: &mut &[u8]) -> u32 {
     return u32::from_le_bytes(buffer);
 }
 
+fn read_amount(transaction_bytes: &mut &[u8]) -> Amount {
+    let mut buffer = [0; 8];
+    transaction_bytes.read(&mut buffer).unwrap();
+    return Amount(u64::from_le_bytes(buffer));
+}
+
 fn read_txin(transaction_bytes: &mut &[u8]) -> String {
     let mut buffer = [0; 32];
     transaction_bytes.read(&mut buffer).unwrap();
@@ -96,10 +117,23 @@ fn main() {
         });
     }
 
+    let output_count = read_compact_size(&mut bytes_slice);
+    let mut outputs = Vec::new();
+
+    for _ in 0..output_count {
+        let amount = read_amount(&mut bytes_slice).to_btc();
+        let script_pubkey = read_script(&mut bytes_slice);
+        outputs.push(Output {
+            amount,
+            script_pubkey,
+        });
+    }
+
     // let json_inputs = serde_json::to_string_pretty(&inputs).unwrap();
     let transaction = Transaction {
         version,
         inputs,
+        outputs,
     };
     let json_transaction = serde_json::to_string_pretty(&transaction).unwrap();
     
