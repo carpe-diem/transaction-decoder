@@ -1,11 +1,18 @@
 use std::io::Read;
-use std::fmt;
+use serde::Serialize;
 
-#[derive(Debug)]
+
+#[derive(Debug, Serialize)]
+struct Transaction {
+    version: u32,
+    inputs: Vec<Input>,
+}
+
+#[derive(Debug, Serialize)]
 struct Input {
-    txin: [u8; 32],
+    txin: String,
     output_index: u32,
-    script_sig: Vec<u8>,
+    script_sig: String,
     sequence: u32,
 }
 
@@ -53,18 +60,18 @@ fn read_u32(transaction_bytes: &mut &[u8]) -> u32 {
     return u32::from_le_bytes(buffer);
 }
 
-fn read_txin(transaction_bytes: &mut &[u8]) -> [u8; 32] {
+fn read_txin(transaction_bytes: &mut &[u8]) -> String {
     let mut buffer = [0; 32];
     transaction_bytes.read(&mut buffer).unwrap();
     buffer.reverse();
-    buffer
+    hex::encode(buffer)
 }
 
-fn read_script(transaction_bytes: &mut &[u8]) -> Vec<u8> {
+fn read_script(transaction_bytes: &mut &[u8]) -> String {
     let script_size = read_compact_size(transaction_bytes);
     let mut buffer = vec![0; script_size as usize];
     transaction_bytes.read(&mut buffer).unwrap();
-    buffer
+    hex::encode(buffer)
 }
 
 fn main() {
@@ -89,9 +96,15 @@ fn main() {
         });
     }
 
+    // let json_inputs = serde_json::to_string_pretty(&inputs).unwrap();
+    let transaction = Transaction {
+        version,
+        inputs,
+    };
+    let json_transaction = serde_json::to_string_pretty(&transaction).unwrap();
     
-    println!("Version: {}", version);
-    println!("Inputs: {:?}", inputs);
+    println!("Transaction: {}", json_transaction);
+
 }
 
 
