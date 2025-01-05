@@ -1,59 +1,6 @@
 use std::io::Read;
-use serde::{Serialize, Serializer};
-
-
-#[derive(Debug, Serialize)]
-struct Transaction {
-    version: u32,
-    inputs: Vec<Input>,
-    outputs: Vec<Output>,
-}
-
-#[derive(Debug, Serialize)]
-struct Input {
-    txin: String,
-    output_index: u32,
-    script_sig: String,
-    sequence: u32,
-}
-
-#[derive(Debug)]
-struct Amount (u64);
-
-trait BitcoinValue {
-    fn to_btc(&self) -> f64;
-}
-
-impl BitcoinValue for Amount {
-    fn to_btc(&self) -> f64 {
-        self.0 as f64 / 100_000_000.0
-    }
-}
-
-#[derive(Debug, Serialize)]
-struct Output {
-    #[serde(serialize_with = "as_btc")]
-    amount: Amount,
-    script_pubkey: String,
-}
-
-fn as_btc<S: Serializer, T: BitcoinValue>(t: &T, s: S) -> Result<S::Ok, S::Error> {
-    let btc = t.to_btc();
-    s.serialize_f64(btc)
-}
-
-// this is the correct way to implement Debug for Input 
-// using #[derive(Debug)] we get the same output as the test
-// impl fmt::Debug for Input {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         f.debug_struct("Input")
-//             .field("txid", &self.txin)
-//             .field("output_index", &self.output_index)
-//             .field("script", &self.script_sig)
-//             .field("sequence", &self.sequence)
-//             .finish()
-//     }
-// }
+use transaction::{Amount, Input, Output, Transaction};
+mod transaction;
 
 fn read_compact_size(transaction_bytes: &mut &[u8]) -> u64 {
     let mut compact_size = [0_u8; 1];
@@ -89,7 +36,7 @@ fn read_u32(transaction_bytes: &mut &[u8]) -> u32 {
 fn read_amount(transaction_bytes: &mut &[u8]) -> Amount {
     let mut buffer = [0; 8];
     transaction_bytes.read(&mut buffer).unwrap();
-    return Amount(u64::from_le_bytes(buffer));
+    return Amount::from_sat(u64::from_le_bytes(buffer));
 }
 
 fn read_txin(transaction_bytes: &mut &[u8]) -> String {
